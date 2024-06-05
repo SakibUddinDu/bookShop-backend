@@ -1,11 +1,11 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { ObjectId, MongoClient, ServerApiVersion } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const app = express();
 
-const port = 3000;
-
+const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
@@ -14,7 +14,7 @@ function createToken(user) {
     {
       email: user.email,
     },
-    "secret",
+    process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
   return token;
@@ -27,7 +27,7 @@ function verifyToken(req, res, next) {
       return res.status(401).send("You are not authorized");
     }
 
-    const verifiedUser = jwt.verify(token, "secret");
+    const verifiedUser = jwt.verify(token, process.env.JWT_SECRET);
     if (!verifiedUser?.email) {
       return res.status(401).send("You are not authorized");
     }
@@ -39,20 +39,7 @@ function verifyToken(req, res, next) {
   }
 }
 
-// function verifyToken(req, res, next) {
-//   console.log(req.headers);
-//   const token = req.headers.authorization?.split(" ")[1];
-//   // console.log(token)
-//   const verifiedUser = jwt.verify(token, "secret");
-//   if (!verifiedUser?.email) {
-//     return res.send("You are not authorized");
-//   }
-//   req.user = verifiedUser.email;
-//   next();
-// }
-
-const uri =
-  "mongodb+srv://sakibuddin831:nwlyZ3zg8wiyvkMw@cluster0.hqdjzcg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.DATABASE_URL;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -76,7 +63,7 @@ async function run() {
     app.post("/user", async (req, res) => {
       try {
         const user = req.body;
-        const token =createToken(user);
+        const token = createToken(user);
         console.log(token);
         const existingUser = await userCollection.findOne({
           email: user.email,
@@ -86,15 +73,13 @@ async function run() {
           return res.send({
             status: "success",
             message: "Login success",
-            token
+            token,
           });
         } else {
           // User does not exist, proceed to insert
           const result = await userCollection.insertOne(user);
           console.log(result);
-          res
-            .status(201)
-            .send({ token });
+          res.status(201).send({ token });
         }
       } catch (error) {
         console.error(error);
@@ -164,8 +149,6 @@ async function run() {
       }
     });
 
-   
-
     // books
     app.post("/books", verifyToken, async (req, res) => {
       try {
@@ -217,7 +200,7 @@ async function run() {
       }
     });
 
-    app.get("/books/:id",  async (req, res) => {
+    app.get("/books/:id", async (req, res) => {
       try {
         const bookId = req.params.id;
         const book = await booksCollection.findOne({
@@ -235,7 +218,7 @@ async function run() {
       }
     });
 
-    app.delete("/books/:id",  verifyToken, async (req, res) => {
+    app.delete("/books/:id", verifyToken, async (req, res) => {
       try {
         const bookId = req.params.id;
 
@@ -280,112 +263,111 @@ async function run() {
 
 run().catch(console.dir);
 
-// app.listen(port, () => {
-//   console.log(`Example app listening on port ${port}`);
-// });
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
 
 module.exports = app;
 
+// app.get("/user/:id", async (req, res) => {
+//   try {
+//     // const id = decodeURIComponent(req.params.id);
+//     const id = req.params.id;
+//     console.log(id);
 
- // app.get("/user/:id", async (req, res) => {
-    //   try {
-    //     // const id = decodeURIComponent(req.params.id);
-    //     const id = req.params.id;
-    //     console.log(id);
+//     // const user = await userCollection.findOne({
+//     //   $or: [{ email: id }, { photoURL: id }]
+//     // });
+//     // console.log(user)
+//     const user = await userCollection.findOne({
+//       email: id,
+//     });
 
-    //     // const user = await userCollection.findOne({
-    //     //   $or: [{ email: id }, { photoURL: id }]
-    //     // });
-    //     // console.log(user)
-    //     const user = await userCollection.findOne({
-    //       email: id,
-    //     });
+//     if (!user) {
+//       res.status(404).send({ message: "User not found" });
+//     } else {
+//       res.status(200).send(user);
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Error fetching user" });
+//   }
+// });
 
-    //     if (!user) {
-    //       res.status(404).send({ message: "User not found" });
-    //     } else {
-    //       res.status(200).send(user);
-    //     }
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).send({ message: "Error fetching user" });
-    //   }
-    // });
+// app.get("/user/:id", async (req, res) => {
+//   try {
+//     const id = req.params.id;
+//     console.log(id)
+//     const user = await userCollection.findOne({
+//             email: id, // Assuming email is the field in your user document
+//           });
 
-    // app.get("/user/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     console.log(id)
-    //     const user = await userCollection.findOne({
-    //             email: id, // Assuming email is the field in your user document
-    //           });
+//     if (!user) {
+//       res.status(404).send({ message: "User not found" });
+//     } else {
+//       res.status(200).send(user);
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Error fetching user" });
+//   }
+// });
 
-    //     if (!user) {
-    //       res.status(404).send({ message: "User not found" });
-    //     } else {
-    //       res.status(200).send(user);
-    //     }
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).send({ message: "Error fetching user" });
-    //   }
-    // });
+// app.get("user/:id", async (req, res) => {
+//   try {
+//     const bookId = req.params.id;
+//     const book = await booksCollection.findOne({
+//       _id: new ObjectId(bookId),
+//     });
 
-    // app.get("user/:id", async (req, res) => {
-    //   try {
-    //     const bookId = req.params.id;
-    //     const book = await booksCollection.findOne({
-    //       _id: new ObjectId(bookId),
-    //     });
+//     if (!book) {
+//       res.status(404).send({ message: "Book not found" });
+//     } else {
+//       res.status(200).send(book);
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Error fetching book" });
+//   }
+// });
 
-    //     if (!book) {
-    //       res.status(404).send({ message: "Book not found" });
-    //     } else {
-    //       res.status(200).send(book);
-    //     }
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).send({ message: "Error fetching book" });
-    //   }
-    // });
+// app.get("/user/:id", async (req, res) => {
+//   try {
+//     const id = req.params.id; // This will hold the email address
+//     const user = await userCollection.findOne({
+//       email: id, // Assuming email is the field in your user document
+//     });
 
-    // app.get("/user/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id; // This will hold the email address
-    //     const user = await userCollection.findOne({
-    //       email: id, // Assuming email is the field in your user document
-    //     });
+//     if (!user) {
+//       res.status(404).send({ message: "User not found" });
+//     } else {
+//       res.status(200).send(user);
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Error fetching user" });
+//   }
+// });
+// app.post("/user", async (req, res) => {
+//   try {
+//     const user = req.body;
 
-    //     if (!user) {
-    //       res.status(404).send({ message: "User not found" });
-    //     } else {
-    //       res.status(200).send(user);
-    //     }
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).send({ message: "Error fetching user" });
-    //   }
-    // });
-    // app.post("/user", async (req, res) => {
-    //   try {
-    //     const user = req.body;
+//     const isUserExist = await userCollection.findOne({
+//       $or: [{ email: user?.email }, { photoURL: user?.photoURL }],
+//     });
+//     if (isUserExist?._id) {
+//       return res.send({
+//         status: "success",
+//         message: "Login success",
+//       });
+//     }
+//     const result = await userCollection.insertOne(user);
 
-    //     const isUserExist = await userCollection.findOne({
-    //       $or: [{ email: user?.email }, { photoURL: user?.photoURL }],
-    //     });
-    //     if (isUserExist?._id) {
-    //       return res.send({
-    //         status: "success",
-    //         message: "Login success",
-    //       });
-    //     }
-    //     const result = await userCollection.insertOne(user);
-
-    //     res
-    //       .status(201)
-    //       .send({ message: "User inserted", userId: result.insertedId });
-    //   } catch (error) {
-    //     console.error(error);
-    //     res.status(500).send({ message: "Error inserting user" });
-    //   }
-    // });
+//     res
+//       .status(201)
+//       .send({ message: "User inserted", userId: result.insertedId });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Error inserting user" });
+//   }
+// });
